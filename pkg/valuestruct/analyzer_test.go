@@ -120,6 +120,22 @@ func TestAnalyzer_OnePer(t *testing.T) {
 	analysistest.Run(t, testdata, allChecksAnalyzer(t), "oneper")
 }
 
+func TestAnalyzer_TypeSigFlags(t *testing.T) {
+	t.Parallel()
+
+	// Enable func-type and interface-method while keeping param=false (default).
+	// Verifies that parameter-position violations in function types and interface
+	// methods are suppressed when param=false.
+	testdata := analysistest.TestData()
+	a := valuestruct.NewAnalyzer()
+	for _, flag := range []string{"func-type", "interface-method"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	analysistest.Run(t, testdata, a, "typesigflags")
+}
+
 func TestAnalyzer_Generated(t *testing.T) {
 	t.Parallel()
 

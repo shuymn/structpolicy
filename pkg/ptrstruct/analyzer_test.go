@@ -120,6 +120,16 @@ func TestAnalyzer_OnePer(t *testing.T) {
 	analysistest.Run(t, testdata, allChecksAnalyzer(t), "oneper")
 }
 
+func TestAnalyzer_TypeSigFlags(t *testing.T) {
+	t.Parallel()
+
+	// Use default analyzer (func-type=true, interface-method=true, result=false).
+	// Verifies that result-position violations in function types and interface
+	// methods are suppressed when result=false.
+	testdata := analysistest.TestData()
+	analysistest.Run(t, testdata, ptrstruct.NewAnalyzer(), "typesigflags")
+}
+
 func TestAnalyzer_Generated(t *testing.T) {
 	t.Parallel()
 
