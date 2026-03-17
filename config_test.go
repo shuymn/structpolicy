@@ -10,21 +10,21 @@ func TestDefaultConfig(t *testing.T) {
 
 	cfg := DefaultConfig()
 
-	// Rule toggles (Phase 1: on)
+	// Receiver: on by default (matches Go stdlib convention)
 	if !cfg.Receiver {
 		t.Error("Receiver should default to true")
 	}
-	if !cfg.Param {
-		t.Error("Param should default to true")
-	}
-	if !cfg.Result {
-		t.Error("Result should default to true")
-	}
-	if !cfg.Field {
-		t.Error("Field should default to true")
-	}
 
-	// Phase 2 toggles (off)
+	// Other declaration checks: off by default (opt-in)
+	if cfg.Param {
+		t.Error("Param should default to false")
+	}
+	if cfg.Result {
+		t.Error("Result should default to false")
+	}
+	if cfg.Field {
+		t.Error("Field should default to false")
+	}
 	if cfg.InterfaceMethod {
 		t.Error("InterfaceMethod should default to false")
 	}
@@ -35,12 +35,12 @@ func TestDefaultConfig(t *testing.T) {
 		t.Error("NamedType should default to false")
 	}
 
-	// Container checks
-	if !cfg.SliceElem {
-		t.Error("SliceElem should default to true")
+	// Container checks: off by default (opt-in)
+	if cfg.SliceElem {
+		t.Error("SliceElem should default to false")
 	}
-	if !cfg.MapValue {
-		t.Error("MapValue should default to true")
+	if cfg.MapValue {
+		t.Error("MapValue should default to false")
 	}
 	if cfg.MapKey {
 		t.Error("MapKey should default to false")

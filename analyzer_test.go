@@ -3,37 +3,51 @@ package ptrstruct_test
 import (
 	"testing"
 
+	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/analysistest"
 
 	"github.com/shuymn/ptrstruct"
 )
 
+// allChecksAnalyzer returns an analyzer with all declaration and container
+// checks enabled, matching the old Phase-1 defaults.
+func allChecksAnalyzer(t *testing.T) *analysis.Analyzer {
+	t.Helper()
+	a := ptrstruct.NewAnalyzer()
+	for _, flag := range []string{"param", "result", "field", "slice-elem", "map-value"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return a
+}
+
 func TestAnalyzer(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "basic", "ok", "containers", "generics")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "basic", "ok", "containers", "generics")
 }
 
 func TestAnalyzer_Suppress(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "suppress")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "suppress")
 }
 
 func TestAnalyzer_FileNolint(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "filenolint")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "filenolint")
 }
 
 func TestAnalyzer_TypeBlock(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "typeblock")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "typeblock")
 }
 
 func TestAnalyzer_Allow(t *testing.T) {
@@ -41,6 +55,11 @@ func TestAnalyzer_Allow(t *testing.T) {
 
 	testdata := analysistest.TestData()
 	a := ptrstruct.NewAnalyzer()
+	for _, flag := range []string{"param", "result", "field", "slice-elem", "map-value"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.Flags.Set("allow-types", "time.Time"); err != nil {
 		t.Fatal(err)
 	}
@@ -52,6 +71,11 @@ func TestAnalyzer_AllowStdlib(t *testing.T) {
 
 	testdata := analysistest.TestData()
 	a := ptrstruct.NewAnalyzer()
+	for _, flag := range []string{"param", "result", "field", "slice-elem", "map-value"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.Flags.Set("allow-stdlib", "true"); err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +87,11 @@ func TestAnalyzer_AllowThirdParty(t *testing.T) {
 
 	testdata := analysistest.TestData()
 	a := ptrstruct.NewAnalyzer()
+	for _, flag := range []string{"param", "result", "field", "slice-elem", "map-value"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.Flags.Set("allow-stdlib", "false"); err != nil {
 		t.Fatal(err)
 	}
@@ -76,35 +105,35 @@ func TestAnalyzer_Alias(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "alias")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "alias")
 }
 
 func TestAnalyzer_Nested(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "nested")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "nested")
 }
 
 func TestAnalyzer_OnePer(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "oneper")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "oneper")
 }
 
 func TestAnalyzer_Generated(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "generated")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "generated")
 }
 
 func TestAnalyzer_Embedded(t *testing.T) {
 	t.Parallel()
 
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "embedded")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "embedded")
 }
 
 func TestAnalyzer_IgnoreTestsDefault(t *testing.T) {
@@ -112,7 +141,7 @@ func TestAnalyzer_IgnoreTestsDefault(t *testing.T) {
 
 	// Default: IgnoreTests=false, so test files ARE checked.
 	testdata := analysistest.TestData()
-	analysistest.Run(t, testdata, ptrstruct.Analyzer, "ignoretests")
+	analysistest.Run(t, testdata, allChecksAnalyzer(t), "ignoretests")
 }
 
 func TestAnalyzer_IgnoreTestsEnabled(t *testing.T) {
@@ -123,6 +152,11 @@ func TestAnalyzer_IgnoreTestsEnabled(t *testing.T) {
 	// if the analyzer checked it, analysistest would fail.
 	testdata := analysistest.TestData()
 	a := ptrstruct.NewAnalyzer()
+	for _, flag := range []string{"param", "result", "field", "slice-elem", "map-value"} {
+		if err := a.Flags.Set(flag, "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := a.Flags.Set("ignore-tests", "true"); err != nil {
 		t.Fatal(err)
 	}

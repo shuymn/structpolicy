@@ -65,13 +65,8 @@ func Save(users []User) {}
 	}
 
 	text := string(out)
-	for _, needle := range []string{
-		"receiver uses value struct User; use *User",
-		"parameter users uses slice element User by value",
-	} {
-		if !strings.Contains(text, needle) {
-			t.Fatalf("output missing %q\n%s", needle, text)
-		}
+	if !strings.Contains(text, "receiver uses value struct User; use *User") {
+		t.Fatalf("output missing receiver diagnostic\n%s", text)
 	}
 }
 

@@ -31,18 +31,19 @@ type Config struct {
 	AllowPackages   []string
 }
 
-// DefaultConfig returns a Config with Phase 1 defaults.
+// DefaultConfig returns a Config with receiver-only defaults.
+// Other checks (param, result, field, containers) are opt-in.
 func DefaultConfig() *Config {
 	return &Config{
 		Receiver:        true,
-		Param:           true,
-		Result:          true,
-		Field:           true,
+		Param:           false,
+		Result:          false,
+		Field:           false,
 		InterfaceMethod: false,
 		FuncType:        false,
 		NamedType:       false,
-		SliceElem:       true,
-		MapValue:        true,
+		SliceElem:       false,
+		MapValue:        false,
 		MapKey:          false,
 		ArrayElem:       false,
 		ChanElem:        false,

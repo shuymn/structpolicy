@@ -6,16 +6,18 @@ A Go static analyzer that enforces pointer usage for struct-bearing declaration 
 
 `ptrstruct` reports declarations where a struct type is used by value instead of by pointer.
 
-| | NG | OK |
-|---|---|---|
-| Receiver | `func (u User) M()` | `func (u *User) M()` |
-| Parameter | `func Save(u User)` | `func Save(u *User)` |
-| Result | `func Load() User` | `func Load() *User` |
-| Field | `Meta Profile` | `Meta *Profile` |
-| Slice element | `[]User` | `[]*User` |
-| Map value | `map[string]User` | `map[string]*User` |
+By default, only **method receivers** are checked. Other checks are opt-in via flags.
 
-Pointer wrapping a container does not exempt its contents: `*[]User` is still flagged because the slice element `User` is by value.
+| | NG | OK | Flag | Default |
+|---|---|---|---|---|
+| Receiver | `func (u User) M()` | `func (u *User) M()` | `-receiver` | on |
+| Parameter | `func Save(u User)` | `func Save(u *User)` | `-param` | off |
+| Result | `func Load() User` | `func Load() *User` | `-result` | off |
+| Field | `Meta Profile` | `Meta *Profile` | `-field` | off |
+| Slice element | `[]User` | `[]*User` | `-slice-elem` | off |
+| Map value | `map[string]User` | `map[string]*User` | `-map-value` | off |
+
+When container checks are enabled, pointer wrapping a container does not exempt its contents: `*[]User` is still flagged because the slice element `User` is by value.
 
 Empty structs (`struct{}`) are exempt.
 
@@ -72,11 +74,11 @@ linters:
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-receiver` | `true` | Check method receivers |
-| `-param` | `true` | Check function parameters |
-| `-result` | `true` | Check function results |
-| `-field` | `true` | Check struct fields |
-| `-slice-elem` | `true` | Check slice element types |
-| `-map-value` | `true` | Check map value types |
+| `-param` | `false` | Check function parameters |
+| `-result` | `false` | Check function results |
+| `-field` | `false` | Check struct fields |
+| `-slice-elem` | `false` | Check slice element types |
+| `-map-value` | `false` | Check map value types |
 | `-map-key` | `false` | Check map key types |
 | `-array-elem` | `false` | Check array element types |
 | `-chan-elem` | `false` | Check channel element types |
@@ -114,7 +116,7 @@ package legacytransport
 
 [recvcheck](https://github.com/raeperd/recvcheck) enforces receiver type consistency — if a type has both value and pointer receivers, it flags the inconsistency. It does not care whether receivers are pointers or values, only that they are uniform.
 
-`ptrstruct` enforces a stricter policy: struct receivers **must** be pointers, period. It also goes beyond receivers to check parameters, results, struct fields, and container elements. The two tools are complementary: `recvcheck` catches mixed receiver sets, `ptrstruct` prevents value structs from appearing in API surfaces.
+`ptrstruct` enforces a stricter policy: struct receivers **must** be pointers, period. It can optionally go beyond receivers to check parameters, results, struct fields, and container elements. The two tools are complementary: `recvcheck` catches mixed receiver sets, `ptrstruct` prevents value structs from appearing in API surfaces.
 
 ## Local Development
 

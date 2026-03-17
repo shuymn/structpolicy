@@ -20,6 +20,11 @@ func TestFindViolation(t *testing.T) {
 		types.NewVar(0, nil, "Name", types.Typ[types.String]),
 	)
 	cfg := DefaultConfig()
+	cfg.Param = true
+	cfg.Result = true
+	cfg.Field = true
+	cfg.SliceElem = true
+	cfg.MapValue = true
 
 	tests := []struct {
 		name    string
