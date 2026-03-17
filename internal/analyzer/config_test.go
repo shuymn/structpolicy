@@ -8,130 +8,130 @@ import (
 func TestDefaultConfig_ModePointer(t *testing.T) {
 	t.Parallel()
 
-	cfg := DefaultConfig(ModePointer)
+	cfg := defaultConfig(ModePointer)
 
-	if cfg.Mode != ModePointer {
-		t.Error("Mode should be ModePointer")
+	if cfg.mode != ModePointer {
+		t.Error("mode should be ModePointer")
 	}
 
 	// Pointer-leaning defaults for an initial refactor pass.
-	if !cfg.Receiver {
-		t.Error("Receiver should default to true")
+	if !cfg.receiver {
+		t.Error("receiver should default to true")
 	}
-	if cfg.Result {
-		t.Error("Result should default to false")
+	if cfg.result {
+		t.Error("result should default to false")
 	}
-	if !cfg.Param {
-		t.Error("Param should default to true")
+	if !cfg.param {
+		t.Error("param should default to true")
 	}
-	if !cfg.Field {
-		t.Error("Field should default to true")
+	if !cfg.field {
+		t.Error("field should default to true")
 	}
-	if !cfg.InterfaceMethod {
-		t.Error("InterfaceMethod should default to true")
+	if !cfg.interfaceMethod {
+		t.Error("interfaceMethod should default to true")
 	}
-	if !cfg.FuncType {
-		t.Error("FuncType should default to true")
+	if !cfg.funcType {
+		t.Error("funcType should default to true")
 	}
-	if cfg.NamedType {
-		t.Error("NamedType should default to false")
+	if cfg.namedType {
+		t.Error("namedType should default to false")
 	}
 
-	if cfg.MapKey {
-		t.Error("MapKey should default to false")
+	if cfg.mapKey {
+		t.Error("mapKey should default to false")
 	}
-	if cfg.SliceElem {
-		t.Error("SliceElem should default to false")
+	if cfg.sliceElem {
+		t.Error("sliceElem should default to false")
 	}
-	if cfg.MapValue {
-		t.Error("MapValue should default to false")
+	if cfg.mapValue {
+		t.Error("mapValue should default to false")
 	}
-	if cfg.ArrayElem {
-		t.Error("ArrayElem should default to false")
+	if cfg.arrayElem {
+		t.Error("arrayElem should default to false")
 	}
-	if cfg.ChanElem {
-		t.Error("ChanElem should default to false")
+	if cfg.chanElem {
+		t.Error("chanElem should default to false")
 	}
 
 	// File filtering
-	if !cfg.IgnoreGenerated {
-		t.Error("IgnoreGenerated should default to true")
+	if !cfg.ignoreGenerated {
+		t.Error("ignoreGenerated should default to true")
 	}
-	if cfg.IgnoreTests {
-		t.Error("IgnoreTests should default to false")
+	if cfg.ignoreTests {
+		t.Error("ignoreTests should default to false")
 	}
 
 	// Suppression toggles
-	if !cfg.HonorNolint {
-		t.Error("HonorNolint should default to true")
+	if !cfg.honorNolint {
+		t.Error("honorNolint should default to true")
 	}
-	if !cfg.HonorNolintAll {
-		t.Error("HonorNolintAll should default to true")
+	if !cfg.honorNolintAll {
+		t.Error("honorNolintAll should default to true")
 	}
-	if !cfg.AllowStdlib {
-		t.Error("AllowStdlib should default to true")
+	if !cfg.allowStdlib {
+		t.Error("allowStdlib should default to true")
 	}
-	if cfg.AllowThirdParty {
-		t.Error("AllowThirdParty should default to false")
+	if cfg.allowThirdParty {
+		t.Error("allowThirdParty should default to false")
 	}
 
 	// Allowlists
-	if cfg.AllowTypes != nil {
-		t.Error("AllowTypes should default to nil")
+	if cfg.allowTypes != nil {
+		t.Error("allowTypes should default to nil")
 	}
-	if cfg.AllowPatterns != nil {
-		t.Error("AllowPatterns should default to nil")
+	if cfg.allowPatterns != nil {
+		t.Error("allowPatterns should default to nil")
 	}
-	if cfg.AllowPackages != nil {
-		t.Error("AllowPackages should default to nil")
+	if cfg.allowPackages != nil {
+		t.Error("allowPackages should default to nil")
 	}
 }
 
 func TestDefaultConfig_ModeValue(t *testing.T) {
 	t.Parallel()
 
-	cfg := DefaultConfig(ModeValue)
+	cfg := defaultConfig(ModeValue)
 
-	if cfg.Mode != ModeValue {
-		t.Error("Mode should be ModeValue")
+	if cfg.mode != ModeValue {
+		t.Error("mode should be ModeValue")
 	}
 
 	// Value-leaning defaults for an initial refactor pass.
-	if cfg.Receiver {
-		t.Error("Receiver should default to false")
+	if cfg.receiver {
+		t.Error("receiver should default to false")
 	}
-	if cfg.Param {
-		t.Error("Param should default to false")
+	if cfg.param {
+		t.Error("param should default to false")
 	}
-	if !cfg.Result {
-		t.Error("Result should default to true")
+	if !cfg.result {
+		t.Error("result should default to true")
 	}
-	if cfg.Field {
-		t.Error("Field should default to false")
+	if cfg.field {
+		t.Error("field should default to false")
 	}
-	if cfg.InterfaceMethod {
-		t.Error("InterfaceMethod should default to false")
+	if cfg.interfaceMethod {
+		t.Error("interfaceMethod should default to false")
 	}
-	if cfg.FuncType {
-		t.Error("FuncType should default to false")
+	if cfg.funcType {
+		t.Error("funcType should default to false")
 	}
-	if !cfg.NamedType {
-		t.Error("NamedType should default to true")
+	if !cfg.namedType {
+		t.Error("namedType should default to true")
 	}
-	if !cfg.SliceElem {
-		t.Error("SliceElem should default to true")
+	if !cfg.sliceElem {
+		t.Error("sliceElem should default to true")
 	}
-	if !cfg.MapValue {
-		t.Error("MapValue should default to true")
+	if !cfg.mapValue {
+		t.Error("mapValue should default to true")
 	}
-	if !cfg.MapKey {
-		t.Error("MapKey should default to true")
+	if !cfg.mapKey {
+		t.Error("mapKey should default to true")
 	}
-	if !cfg.ArrayElem {
-		t.Error("ArrayElem should default to true")
+	if !cfg.arrayElem {
+		t.Error("arrayElem should default to true")
 	}
-	if !cfg.ChanElem {
-		t.Error("ChanElem should default to true")
+	if !cfg.chanElem {
+		t.Error("chanElem should default to true")
 	}
 }
 

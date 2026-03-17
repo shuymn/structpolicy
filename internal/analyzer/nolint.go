@@ -20,10 +20,10 @@ type nolintMatcher struct {
 	linterName string
 }
 
-func newNolintMatcher(cfg *Config) nolintMatcher {
+func newNolintMatcher(cfg *config) nolintMatcher {
 	return nolintMatcher{
-		honorAll:   cfg.HonorNolintAll,
-		linterName: cfg.Mode.LinterName(),
+		honorAll:   cfg.honorNolintAll,
+		linterName: cfg.mode.linterName(),
 	}
 }
 
@@ -65,10 +65,10 @@ func isSuppressed(
 	pos token.Pos,
 	decl ast.Node,
 	file *ast.File,
-	cfg *Config,
+	cfg *config,
 	fileSupp *fileSuppression,
 ) bool {
-	if !cfg.HonorNolint {
+	if !cfg.honorNolint {
 		return false
 	}
 

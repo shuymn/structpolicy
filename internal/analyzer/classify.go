@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// Classifier checks whether a named type is exempted by the allowlist.
-type Classifier struct {
+// classifier checks whether a named type is exempted by the allowlist.
+type classifier struct {
 	allowStdlib     bool
 	allowThirdParty bool
 	modulePath      string
@@ -19,28 +19,22 @@ type Classifier struct {
 	stdlib          map[string]bool
 }
 
-// NewClassifier creates a Classifier from the allowlist fields of cfg.
-// It returns an error if any AllowPatterns entry is not a valid regexp.
-func NewClassifier(cfg *Config) (*Classifier, error) {
-	return newClassifier(cfg, "")
-}
-
-func newClassifier(cfg *Config, modulePath string) (*Classifier, error) {
-	c := &Classifier{
-		allowStdlib:     cfg.AllowStdlib,
-		allowThirdParty: cfg.AllowThirdParty,
+func newClassifier(cfg *config, modulePath string) (*classifier, error) {
+	c := &classifier{
+		allowStdlib:     cfg.allowStdlib,
+		allowThirdParty: cfg.allowThirdParty,
 		modulePath:      modulePath,
-		types:           make(map[string]bool, len(cfg.AllowTypes)),
-		packages:        make(map[string]bool, len(cfg.AllowPackages)),
+		types:           make(map[string]bool, len(cfg.allowTypes)),
+		packages:        make(map[string]bool, len(cfg.allowPackages)),
 		stdlib:          make(map[string]bool),
 	}
-	for _, t := range cfg.AllowTypes {
+	for _, t := range cfg.allowTypes {
 		c.types[t] = true
 	}
-	for _, p := range cfg.AllowPackages {
+	for _, p := range cfg.allowPackages {
 		c.packages[p] = true
 	}
-	for _, pat := range cfg.AllowPatterns {
+	for _, pat := range cfg.allowPatterns {
 		if pat == "" {
 			continue
 		}
@@ -53,8 +47,8 @@ func newClassifier(cfg *Config, modulePath string) (*Classifier, error) {
 	return c, nil
 }
 
-// IsAllowed reports whether the named type is exempted by any allowlist entry.
-func (c *Classifier) IsAllowed(named *types.Named) bool {
+// isAllowed reports whether the named type is exempted by any allowlist entry.
+func (c *classifier) isAllowed(named *types.Named) bool {
 	pkg := named.Obj().Pkg()
 
 	if c.allowStdlib && c.isStdlib(pkg) {
@@ -83,7 +77,7 @@ func (c *Classifier) IsAllowed(named *types.Named) bool {
 	return false
 }
 
-func (c *Classifier) isStdlib(pkg *types.Package) bool {
+func (c *classifier) isStdlib(pkg *types.Package) bool {
 	if pkg == nil {
 		return true
 	}
@@ -99,7 +93,7 @@ func (c *Classifier) isStdlib(pkg *types.Package) bool {
 	return ok
 }
 
-func (c *Classifier) isThirdParty(pkg *types.Package) bool {
+func (c *classifier) isThirdParty(pkg *types.Package) bool {
 	if pkg == nil || c.modulePath == "" {
 		return false
 	}

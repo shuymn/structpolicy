@@ -11,22 +11,22 @@ import (
 )
 
 // NewAnalyzer creates a new analyzer with default configuration for the given mode.
-// Each call returns an independent analyzer with its own Config, safe for
+// Each call returns an independent analyzer with its own config, safe for
 // concurrent use in tests with different flag settings.
-func NewAnalyzer(mode Mode) *analysis.Analyzer {
-	cfg := DefaultConfig(mode)
+func NewAnalyzer(mode mode) *analysis.Analyzer {
+	cfg := defaultConfig(mode)
 	a := &analysis.Analyzer{
-		Name: mode.LinterName(),
-		Doc:  mode.Doc(),
+		Name: mode.linterName(),
+		Doc:  mode.doc(),
 		Run:  func(pass *analysis.Pass) (any, error) { return run(pass, cfg) },
 	}
 	registerFlags(a, cfg)
 	return a
 }
 
-func run(pass *analysis.Pass, cfg *Config) (any, error) {
+func run(pass *analysis.Pass, cfg *config) (any, error) {
 	modulePath := ""
-	if cfg.AllowThirdParty {
+	if cfg.allowThirdParty {
 		modulePath = modulePathForPass(pass)
 	}
 
@@ -36,10 +36,10 @@ func run(pass *analysis.Pass, cfg *Config) (any, error) {
 	}
 
 	for _, file := range pass.Files {
-		if cfg.IgnoreGenerated && ast.IsGenerated(file) {
+		if cfg.ignoreGenerated && ast.IsGenerated(file) {
 			continue
 		}
-		if cfg.IgnoreTests && isTestFile(pass, file) {
+		if cfg.ignoreTests && isTestFile(pass, file) {
 			continue
 		}
 		visitFile(pass, file, cfg, cls)
@@ -47,7 +47,7 @@ func run(pass *analysis.Pass, cfg *Config) (any, error) {
 	return nil, nil
 }
 
-func visitFile(pass *analysis.Pass, file *ast.File, cfg *Config, cls *Classifier) {
+func visitFile(pass *analysis.Pass, file *ast.File, cfg *config, cls *classifier) {
 	var fileSupp fileSuppression
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {

@@ -1,16 +1,16 @@
 package analyzer
 
-// FormatDiagnostic produces the diagnostic message for a violation.
+// formatDiagnostic produces the diagnostic message for a violation.
 // position is a human label such as "receiver", "parameter req", "field Meta".
-func FormatDiagnostic(position string, v *Violation, mode Mode) string {
+func formatDiagnostic(position string, v *violation, mode mode) string {
 	if mode == ModeValue {
-		if v.Path == "" {
-			return position + " uses pointer to struct " + v.TypeName + "; use " + v.TypeName
+		if v.path == "" {
+			return position + " uses pointer to struct " + v.typeName + "; use " + v.typeName
 		}
-		return position + " uses " + v.Path + " " + v.TypeName + " by pointer"
+		return position + " uses " + v.path + " " + v.typeName + " by pointer"
 	}
-	if v.Path == "" {
-		return position + " uses value struct " + v.TypeName + "; use *" + v.TypeName
+	if v.path == "" {
+		return position + " uses value struct " + v.typeName + "; use *" + v.typeName
 	}
-	return position + " uses " + v.Path + " " + v.TypeName + " by value"
+	return position + " uses " + v.path + " " + v.typeName + " by value"
 }

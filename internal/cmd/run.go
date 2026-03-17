@@ -9,9 +9,9 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-// ExitDiagnostics indicates that analysis succeeded but reported diagnostics.
+// exitDiagnostics indicates that analysis succeeded but reported diagnostics.
 // This follows the convention established by singlechecker/multichecker.
-const ExitDiagnostics = 3
+const exitDiagnostics = 3
 
 // Run executes the analyzer as a standalone command-line tool.
 // It parses flags from os.Args, loads packages, runs the analysis,
@@ -59,7 +59,7 @@ func Run(a *analysis.Analyzer) {
 			continue
 		}
 		if len(root.Diagnostics) > 0 {
-			exitCode = ExitDiagnostics
+			exitCode = exitDiagnostics
 		}
 	}
 

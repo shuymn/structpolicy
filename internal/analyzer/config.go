@@ -6,111 +6,111 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// Config holds the analyzer configuration.
-type Config struct {
-	Mode            Mode
-	Receiver        bool
-	Param           bool
-	Result          bool
-	Field           bool
-	InterfaceMethod bool
-	FuncType        bool
-	NamedType       bool
-	SliceElem       bool
-	MapValue        bool
-	MapKey          bool
-	ArrayElem       bool
-	ChanElem        bool
-	IgnoreGenerated bool
-	IgnoreTests     bool
-	HonorNolint     bool
-	HonorNolintAll  bool
-	AllowStdlib     bool
-	AllowThirdParty bool
-	AllowTypes      []string
-	AllowPatterns   []string
-	AllowPackages   []string
+// config holds the analyzer configuration.
+type config struct {
+	mode            mode
+	receiver        bool
+	param           bool
+	result          bool
+	field           bool
+	interfaceMethod bool
+	funcType        bool
+	namedType       bool
+	sliceElem       bool
+	mapValue        bool
+	mapKey          bool
+	arrayElem       bool
+	chanElem        bool
+	ignoreGenerated bool
+	ignoreTests     bool
+	honorNolint     bool
+	honorNolintAll  bool
+	allowStdlib     bool
+	allowThirdParty bool
+	allowTypes      []string
+	allowPatterns   []string
+	allowPackages   []string
 }
 
-// DefaultConfig returns a Config with opposite mode-specific performance-tuning defaults.
-func DefaultConfig(mode Mode) *Config {
-	cfg := &Config{
-		Mode:            mode,
-		Receiver:        true,
-		Param:           false,
-		Result:          false,
-		Field:           false,
-		InterfaceMethod: false,
-		FuncType:        false,
-		NamedType:       false,
-		SliceElem:       false,
-		MapValue:        false,
-		MapKey:          false,
-		ArrayElem:       false,
-		ChanElem:        false,
-		IgnoreGenerated: true,
-		IgnoreTests:     false,
-		HonorNolint:     true,
-		HonorNolintAll:  true,
-		AllowStdlib:     true,
-		AllowThirdParty: false,
-		AllowTypes:      nil,
-		AllowPatterns:   nil,
-		AllowPackages:   nil,
+// defaultConfig returns a config with opposite mode-specific performance-tuning defaults.
+func defaultConfig(mode mode) *config {
+	cfg := &config{
+		mode:            mode,
+		receiver:        true,
+		param:           false,
+		result:          false,
+		field:           false,
+		interfaceMethod: false,
+		funcType:        false,
+		namedType:       false,
+		sliceElem:       false,
+		mapValue:        false,
+		mapKey:          false,
+		arrayElem:       false,
+		chanElem:        false,
+		ignoreGenerated: true,
+		ignoreTests:     false,
+		honorNolint:     true,
+		honorNolintAll:  true,
+		allowStdlib:     true,
+		allowThirdParty: false,
+		allowTypes:      nil,
+		allowPatterns:   nil,
+		allowPackages:   nil,
 	}
 
 	switch mode {
 	case ModePointer:
-		cfg.Param = true
-		cfg.Field = true
-		cfg.InterfaceMethod = true
-		cfg.FuncType = true
+		cfg.param = true
+		cfg.field = true
+		cfg.interfaceMethod = true
+		cfg.funcType = true
 	case ModeValue:
-		cfg.Receiver = false
-		cfg.Result = true
-		cfg.NamedType = true
-		cfg.SliceElem = true
-		cfg.MapValue = true
-		cfg.MapKey = true
-		cfg.ArrayElem = true
-		cfg.ChanElem = true
+		cfg.receiver = false
+		cfg.result = true
+		cfg.namedType = true
+		cfg.sliceElem = true
+		cfg.mapValue = true
+		cfg.mapKey = true
+		cfg.arrayElem = true
+		cfg.chanElem = true
 	}
 
 	return cfg
 }
 
-func registerFlags(a *analysis.Analyzer, cfg *Config) {
-	a.Flags.BoolVar(&cfg.Receiver, "receiver", cfg.Receiver, "check method receivers")
-	a.Flags.BoolVar(&cfg.Param, "param", cfg.Param, "check function parameters")
-	a.Flags.BoolVar(&cfg.Result, "result", cfg.Result, "check function results")
-	a.Flags.BoolVar(&cfg.Field, "field", cfg.Field, "check struct fields")
-	a.Flags.BoolVar(&cfg.InterfaceMethod, "interface-method", cfg.InterfaceMethod, "check interface methods")
-	a.Flags.BoolVar(&cfg.FuncType, "func-type", cfg.FuncType, "check function types")
-	a.Flags.BoolVar(&cfg.NamedType, "named-type", cfg.NamedType, "check named container types")
-	a.Flags.BoolVar(&cfg.SliceElem, "slice-elem", cfg.SliceElem, "check slice element types")
-	a.Flags.BoolVar(&cfg.MapValue, "map-value", cfg.MapValue, "check map value types")
-	a.Flags.BoolVar(&cfg.MapKey, "map-key", cfg.MapKey, "check map key types")
-	a.Flags.BoolVar(&cfg.ArrayElem, "array-elem", cfg.ArrayElem, "check array element types")
-	a.Flags.BoolVar(&cfg.ChanElem, "chan-elem", cfg.ChanElem, "check channel element types")
-	a.Flags.BoolVar(&cfg.IgnoreGenerated, "ignore-generated", cfg.IgnoreGenerated, "skip generated files")
-	a.Flags.BoolVar(&cfg.IgnoreTests, "ignore-tests", cfg.IgnoreTests, "skip test files")
+func registerFlags(a *analysis.Analyzer, cfg *config) {
+	a.Flags.BoolVar(&cfg.receiver, "receiver", cfg.receiver, "check method receivers")
+	a.Flags.BoolVar(&cfg.param, "param", cfg.param, "check function parameters")
+	a.Flags.BoolVar(&cfg.result, "result", cfg.result, "check function results")
+	a.Flags.BoolVar(&cfg.field, "field", cfg.field, "check struct fields")
+	a.Flags.BoolVar(&cfg.interfaceMethod, "interface-method", cfg.interfaceMethod, "check interface methods")
+	a.Flags.BoolVar(&cfg.funcType, "func-type", cfg.funcType, "check function types")
+	a.Flags.BoolVar(&cfg.namedType, "named-type", cfg.namedType, "check named container types")
+	a.Flags.BoolVar(&cfg.sliceElem, "slice-elem", cfg.sliceElem, "check slice element types")
+	a.Flags.BoolVar(&cfg.mapValue, "map-value", cfg.mapValue, "check map value types")
+	a.Flags.BoolVar(&cfg.mapKey, "map-key", cfg.mapKey, "check map key types")
+	a.Flags.BoolVar(&cfg.arrayElem, "array-elem", cfg.arrayElem, "check array element types")
+	a.Flags.BoolVar(&cfg.chanElem, "chan-elem", cfg.chanElem, "check channel element types")
+	a.Flags.BoolVar(&cfg.ignoreGenerated, "ignore-generated", cfg.ignoreGenerated, "skip generated files")
+	a.Flags.BoolVar(&cfg.ignoreTests, "ignore-tests", cfg.ignoreTests, "skip test files")
 	a.Flags.BoolVar(
-		&cfg.HonorNolint,
+		&cfg.honorNolint,
 		"honor-nolint",
-		cfg.HonorNolint,
-		"honor //nolint:"+cfg.Mode.LinterName()+" comments",
+		cfg.honorNolint,
+		"honor //nolint:"+cfg.mode.linterName()+" comments",
 	)
-	a.Flags.BoolVar(&cfg.HonorNolintAll, "honor-nolint-all", cfg.HonorNolintAll, "honor //nolint:all comments")
-	a.Flags.BoolVar(&cfg.AllowStdlib, "allow-stdlib", cfg.AllowStdlib, "exempt builtin and standard library packages")
+	a.Flags.BoolVar(&cfg.honorNolintAll, "honor-nolint-all", cfg.honorNolintAll, "honor //nolint:all comments")
+	a.Flags.BoolVar(&cfg.allowStdlib, "allow-stdlib", cfg.allowStdlib, "exempt builtin and standard library packages")
 	a.Flags.BoolVar(
-		&cfg.AllowThirdParty,
+		&cfg.allowThirdParty,
 		"allow-third-party",
-		cfg.AllowThirdParty,
+		cfg.allowThirdParty,
 		"exempt non-stdlib packages outside the current Go module",
 	)
-	a.Flags.Var(&stringListFlag{values: &cfg.AllowTypes}, "allow-types", "comma-separated allowed type names")
-	a.Flags.Var(&stringListFlag{values: &cfg.AllowPatterns}, "allow-patterns", "comma-separated allowed type patterns")
-	a.Flags.Var(&stringListFlag{values: &cfg.AllowPackages}, "allow-packages", "comma-separated allowed package paths")
+	a.Flags.Var(&stringListFlag{values: &cfg.allowTypes}, "allow-types", "comma-separated allowed type names")
+	a.Flags.Var(&stringListFlag{values: &cfg.allowPatterns}, "allow-patterns", "comma-separated allowed type patterns")
+	a.Flags.Var(&stringListFlag{values: &cfg.allowPackages}, "allow-packages", "comma-separated allowed package paths")
 }
 
 // stringListFlag implements flag.Value for comma-separated string lists.
