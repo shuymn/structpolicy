@@ -9,7 +9,7 @@ Go static analyzers for enforcing struct usage policy in Go APIs. Built on [`gol
 | [ptrstruct](cmd/ptrstruct/) | Struct types must be used by **pointer** | Reports value usage of struct types |
 | [valuestruct](cmd/valuestruct/) | Struct types must be used by **value** | Reports pointer usage of struct types |
 
-The analyzers ship with mode-specific performance-tuning defaults. `ptrstruct` defaults focus on surfacing `copy hotspot` candidates, while `valuestruct` defaults focus on surfacing `allocation / indirection hotspot` candidates. See each analyzer's README for the exact default profile and full flag reference.
+The analyzers ship with opposite performance-tuning defaults so you can push a codebase toward one side first and adjust from there. `ptrstruct` defaults focus on `copy hotspot` candidates around call boundaries and declarations. `valuestruct` defaults focus on `allocation / indirection hotspot` candidates in returns and container-heavy shapes. See each analyzer's README for the exact default profile and full flag reference.
 
 ## Local Development
 

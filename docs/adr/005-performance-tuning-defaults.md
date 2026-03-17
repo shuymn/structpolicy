@@ -8,24 +8,24 @@ Accepted
 
 The initial default behavior checked only method receivers. That was easy to explain, but it underfit the main use case for this repository: using analyzers to find internal pointer-vs-value refactor candidates.
 
-For performance work, `ptrstruct` and `valuestruct` do not benefit from perfectly symmetric defaults:
+For the "push in one direction first, then adjust while tuning" workflow, `ptrstruct` and `valuestruct` benefit from clearly opposite defaults:
 
-- `ptrstruct` is most useful when it surfaces copy-heavy positions.
-- `valuestruct` is most useful when it surfaces unnecessary pointers, allocations, and indirection.
-- Receiver checks are not equally strong signals in both directions because standard-library value types can still require pointer receivers for mutating or unmarshal methods.
+- `ptrstruct` should bias toward pointer-leaning call boundaries and declaration sites.
+- `valuestruct` should bias toward value-leaning returns and container-heavy shapes.
+- Exact opposites make the starting policy obvious and easy to reason about.
 
 ## Decision
 
 Adopt mode-specific performance-tuning defaults.
 
-- `ptrstruct` defaults to receiver, parameter, field, slice element, map value, array element, and channel element checks.
-- `valuestruct` defaults to parameter, result, field, slice element, map value, array element, and channel element checks.
-- `result` remains disabled by default for `ptrstruct`.
-- `receiver` remains disabled by default for `valuestruct`.
-- `map-key`, `interface-method`, `func-type`, and `named-type` remain opt-in for both analyzers.
+- `ptrstruct` defaults to receiver, parameter, field, interface method, and function type checks.
+- `valuestruct` defaults to result, named type, slice element, map value, map key, array element, and channel element checks.
+- The two profiles are exact opposites across these flags:
+  `receiver`, `param`, `result`, `field`, `interface-method`, `func-type`, `named-type`, `slice-elem`, `map-value`, `map-key`, `array-elem`, `chan-elem`.
+- `interface-method`, `func-type`, and `named-type` are implemented as real checks so their defaults are behaviorally meaningful.
 
 ## Consequences
 
-- Default runs surface more actionable refactor candidates for performance work.
-- `ptrstruct` and `valuestruct` now have intentionally different default profiles.
+- Default runs support a clear first-pass push toward pointer-heavy or value-heavy code.
+- `ptrstruct` and `valuestruct` now have intentionally opposite default profiles.
 - Existing users who relied on receiver-only defaults must pass flags explicitly to preserve the old behavior.

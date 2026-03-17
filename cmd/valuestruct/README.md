@@ -4,20 +4,20 @@
 
 This is the inverse of [`ptrstruct`](../ptrstruct/). Use it to enforce value semantics for lightweight or immutable struct types.
 
-By default, `valuestruct` uses a performance-tuning profile aimed at surfacing `allocation / indirection hotspot` candidates. It checks parameters, results, fields, and container element positions. Receivers stay opt-in because standard-library value types such as `time.Time` still use pointer receivers for mutation and unmarshal helpers.
+By default, `valuestruct` uses the value-leaning side of the opposite performance-tuning profiles. It aims at surfacing `allocation / indirection hotspot` candidates in returns and container-heavy shapes, so results, named container types, and container element checks default to on. Receivers, parameters, fields, interface methods, and function type declarations stay opt-in on this side.
 
 | | NG | OK | Flag | Default |
 |---|---|---|---|---|
 | Receiver | `func (u *User) M()` | `func (u User) M()` | `-receiver` | off |
-| Parameter | `func Save(u *User)` | `func Save(u User)` | `-param` | on |
+| Parameter | `func Save(u *User)` | `func Save(u User)` | `-param` | off |
 | Result | `func Load() *User` | `func Load() User` | `-result` | on |
-| Field | `Meta *Profile` | `Meta Profile` | `-field` | on |
+| Field | `Meta *Profile` | `Meta Profile` | `-field` | off |
 | Slice element | `[]*User` | `[]User` | `-slice-elem` | on |
 | Map value | `map[string]*User` | `map[string]User` | `-map-value` | on |
 
 Empty structs (`struct{}`) are exempt.
 
-Array and channel element checks are also enabled by default. Map key checks remain opt-in.
+Named container types, array elements, channel elements, and map keys are also enabled by default.
 
 ## Installation
 
@@ -74,15 +74,15 @@ linters:
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-receiver` | `false` | Check method receivers |
-| `-param` | `true` | Check function parameters |
+| `-param` | `false` | Check function parameters |
 | `-result` | `true` | Check function results |
-| `-field` | `true` | Check struct fields |
+| `-field` | `false` | Check struct fields |
 | `-interface-method` | `false` | Check interface method signatures |
 | `-func-type` | `false` | Check function type declarations |
-| `-named-type` | `false` | Check named container types |
+| `-named-type` | `true` | Check named container types |
 | `-slice-elem` | `true` | Check slice element types |
 | `-map-value` | `true` | Check map value types |
-| `-map-key` | `false` | Check map key types |
+| `-map-key` | `true` | Check map key types |
 | `-array-elem` | `true` | Check array element types |
 | `-chan-elem` | `true` | Check channel element types |
 | `-allow-stdlib` | `true` | Exempt builtin and standard library packages |

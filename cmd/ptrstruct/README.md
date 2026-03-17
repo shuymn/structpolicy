@@ -2,7 +2,7 @@
 
 `ptrstruct` reports declarations where a struct type is used by value instead of by pointer.
 
-By default, `ptrstruct` uses a performance-tuning profile aimed at surfacing `copy hotspot` candidates. It checks receivers, parameters, fields, and container element positions where value structs often amplify copying costs. Results stay opt-in because switching returns from `T` to `*T` can trade copies for extra allocation pressure.
+By default, `ptrstruct` uses the pointer-leaning side of the opposite performance-tuning profiles. It aims at surfacing `copy hotspot` candidates around call boundaries and declaration sites, so receivers, parameters, fields, interface method signatures, and function type declarations default to on. Results and container-heavy shapes stay opt-in on this side.
 
 | | NG | OK | Flag | Default |
 |---|---|---|---|---|
@@ -10,10 +10,10 @@ By default, `ptrstruct` uses a performance-tuning profile aimed at surfacing `co
 | Parameter | `func Save(u User)` | `func Save(u *User)` | `-param` | on |
 | Result | `func Load() User` | `func Load() *User` | `-result` | off |
 | Field | `Meta Profile` | `Meta *Profile` | `-field` | on |
-| Slice element | `[]User` | `[]*User` | `-slice-elem` | on |
-| Map value | `map[string]User` | `map[string]*User` | `-map-value` | on |
+| Slice element | `[]User` | `[]*User` | `-slice-elem` | off |
+| Map value | `map[string]User` | `map[string]*User` | `-map-value` | off |
 
-Array and channel element checks are also enabled by default. Map key checks remain opt-in.
+Interface method and function type checks are also enabled by default. Named container types and container element checks remain opt-in.
 
 Pointer wrapping a container does not exempt its contents: `*[]User` is still flagged because the slice element `User` is by value.
 
@@ -75,14 +75,14 @@ linters:
 | `-param` | `true` | Check function parameters |
 | `-result` | `false` | Check function results |
 | `-field` | `true` | Check struct fields |
-| `-interface-method` | `false` | Check interface method signatures |
-| `-func-type` | `false` | Check function type declarations |
+| `-interface-method` | `true` | Check interface method signatures |
+| `-func-type` | `true` | Check function type declarations |
 | `-named-type` | `false` | Check named container types |
-| `-slice-elem` | `true` | Check slice element types |
-| `-map-value` | `true` | Check map value types |
+| `-slice-elem` | `false` | Check slice element types |
+| `-map-value` | `false` | Check map value types |
 | `-map-key` | `false` | Check map key types |
-| `-array-elem` | `true` | Check array element types |
-| `-chan-elem` | `true` | Check channel element types |
+| `-array-elem` | `false` | Check array element types |
+| `-chan-elem` | `false` | Check channel element types |
 | `-allow-stdlib` | `true` | Exempt builtin and standard library packages |
 | `-allow-third-party` | `false` | Exempt non-stdlib packages outside the current Go module |
 | `-allow-types` | | Comma-separated fully qualified type names to exempt (e.g. `time.Time`) |
@@ -117,4 +117,4 @@ package legacytransport
 
 [recvcheck](https://github.com/raeperd/recvcheck) enforces receiver type consistency — if a type has both value and pointer receivers, it flags the inconsistency. It does not care whether receivers are pointers or values, only that they are uniform.
 
-`ptrstruct` enforces a stricter policy: struct receivers **must** be pointers, period. Its default profile also checks parameters, struct fields, and container elements to surface copy-heavy usage patterns. The two tools are complementary: `recvcheck` catches mixed receiver sets, `ptrstruct` catches value-struct usage where pointer semantics are preferred.
+`ptrstruct` enforces a stricter policy: struct receivers **must** be pointers, period. Its default profile also checks parameters, struct fields, interface methods, and function type declarations to surface pointer-leaning refactor candidates. The two tools are complementary: `recvcheck` catches mixed receiver sets, `ptrstruct` catches value-struct usage where pointer semantics are preferred.
