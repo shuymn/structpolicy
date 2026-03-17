@@ -9,48 +9,63 @@ type Violation struct {
 	Named    *types.Named // The named type if the violation is on a named struct; nil for anonymous structs.
 }
 
+// walker holds traversal state for a single FindViolation call.
+// Cycle detection uses seen keyed on *types.Named because Go's type system
+// only permits recursion through named types.
+type walker struct {
+	cfg  *Config
+	cls  *Classifier
+	seen map[*types.Named]bool
+}
+
 // FindViolation walks t recursively and returns the first value-struct
 // violation, or nil if the type is clean.
 // cls may be nil if no allowlist is configured.
 func FindViolation(t types.Type, cfg *Config, cls *Classifier) *Violation {
-	return findViolation(t, cfg, cls, "")
+	w := &walker{cfg: cfg, cls: cls, seen: make(map[*types.Named]bool)}
+	return w.walk(t, "")
 }
 
-func findViolation(t types.Type, cfg *Config, cls *Classifier, path string) *Violation {
+func (w *walker) walk(t types.Type, path string) *Violation {
 	t = types.Unalias(t)
 
 	switch tt := t.(type) {
 	case *types.Pointer:
-		return findViolationPointer(tt, cfg, cls, path)
+		return w.walkPointer(tt, path)
 	case *types.Named:
-		return findViolationNamed(tt, cfg, cls, path)
+		return w.walkNamed(tt, path)
 	case *types.Struct:
-		return findViolationStruct(tt, path)
+		return walkStruct(tt, path)
 	case *types.Slice:
-		return findViolationSlice(tt, cfg, cls, path)
+		return w.walkSlice(tt, path)
 	case *types.Map:
-		return findViolationMap(tt, cfg, cls, path)
+		return w.walkMap(tt, path)
 	case *types.Array:
-		return findViolationArray(tt, cfg, cls, path)
+		return w.walkArray(tt, path)
 	case *types.Chan:
-		return findViolationChan(tt, cfg, cls, path)
+		return w.walkChan(tt, path)
 	default:
 		return nil
 	}
 }
 
-func findViolationPointer(tt *types.Pointer, cfg *Config, cls *Classifier, path string) *Violation {
+func (w *walker) walkPointer(tt *types.Pointer, path string) *Violation {
 	elem := types.Unalias(tt.Elem())
 
 	if isStructType(elem) {
 		return nil
 	}
 
-	return findViolation(elem, cfg, cls, appendPath(path, pathPointer))
+	return w.walk(elem, appendPath(path, pathPointer))
 }
 
-func findViolationNamed(tt *types.Named, cfg *Config, cls *Classifier, path string) *Violation {
-	if cls != nil && cls.IsAllowed(tt) {
+func (w *walker) walkNamed(tt *types.Named, path string) *Violation {
+	if w.seen[tt] {
+		return nil
+	}
+	w.seen[tt] = true
+
+	if w.cls != nil && w.cls.IsAllowed(tt) {
 		return nil
 	}
 
@@ -66,10 +81,10 @@ func findViolationNamed(tt *types.Named, cfg *Config, cls *Classifier, path stri
 		}
 	}
 
-	return findViolation(under, cfg, cls, path)
+	return w.walk(under, path)
 }
 
-func findViolationStruct(tt *types.Struct, path string) *Violation {
+func walkStruct(tt *types.Struct, path string) *Violation {
 	if tt.NumFields() == 0 {
 		return nil
 	}
@@ -80,37 +95,37 @@ func findViolationStruct(tt *types.Struct, path string) *Violation {
 	}
 }
 
-func findViolationSlice(tt *types.Slice, cfg *Config, cls *Classifier, path string) *Violation {
-	if !cfg.SliceElem {
+func (w *walker) walkSlice(tt *types.Slice, path string) *Violation {
+	if !w.cfg.SliceElem {
 		return nil
 	}
-	return findViolation(tt.Elem(), cfg, cls, appendPath(path, pathSliceElement))
+	return w.walk(tt.Elem(), appendPath(path, pathSliceElement))
 }
 
-func findViolationMap(tt *types.Map, cfg *Config, cls *Classifier, path string) *Violation {
-	if cfg.MapKey {
-		if v := findViolation(tt.Key(), cfg, cls, appendPath(path, pathMapKey)); v != nil {
+func (w *walker) walkMap(tt *types.Map, path string) *Violation {
+	if w.cfg.MapKey {
+		if v := w.walk(tt.Key(), appendPath(path, pathMapKey)); v != nil {
 			return v
 		}
 	}
-	if !cfg.MapValue {
+	if !w.cfg.MapValue {
 		return nil
 	}
-	return findViolation(tt.Elem(), cfg, cls, appendPath(path, pathMapValue))
+	return w.walk(tt.Elem(), appendPath(path, pathMapValue))
 }
 
-func findViolationArray(tt *types.Array, cfg *Config, cls *Classifier, path string) *Violation {
-	if !cfg.ArrayElem {
+func (w *walker) walkArray(tt *types.Array, path string) *Violation {
+	if !w.cfg.ArrayElem {
 		return nil
 	}
-	return findViolation(tt.Elem(), cfg, cls, appendPath(path, pathArrayElement))
+	return w.walk(tt.Elem(), appendPath(path, pathArrayElement))
 }
 
-func findViolationChan(tt *types.Chan, cfg *Config, cls *Classifier, path string) *Violation {
-	if !cfg.ChanElem {
+func (w *walker) walkChan(tt *types.Chan, path string) *Violation {
+	if !w.cfg.ChanElem {
 		return nil
 	}
-	return findViolation(tt.Elem(), cfg, cls, appendPath(path, pathChanElement))
+	return w.walk(tt.Elem(), appendPath(path, pathChanElement))
 }
 
 // Path segment constants for violation paths.

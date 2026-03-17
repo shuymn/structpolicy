@@ -117,3 +117,50 @@ func TestFindViolation_MapKeyEnabled(t *testing.T) {
 		t.Error("expected violation for map key with MapKey enabled")
 	}
 }
+
+func TestFindViolation_RecursiveTypes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("recursive slice type A = []A", func(t *testing.T) {
+		t.Parallel()
+		cfg := DefaultConfig()
+		pkg := types.NewPackage("example.com/foo", "foo")
+		tn := types.NewTypeName(0, pkg, "A", nil)
+		named := types.NewNamed(tn, nil, nil)
+		named.SetUnderlying(types.NewSlice(named))
+
+		v := FindViolation(named, cfg, nil)
+		if v != nil {
+			t.Errorf("expected nil for recursive slice type, got %+v", v)
+		}
+	})
+
+	t.Run("recursive map type M = map[string]M", func(t *testing.T) {
+		t.Parallel()
+		cfg := DefaultConfig()
+		pkg := types.NewPackage("example.com/foo", "foo")
+		tn := types.NewTypeName(0, pkg, "M", nil)
+		named := types.NewNamed(tn, nil, nil)
+		named.SetUnderlying(types.NewMap(types.Typ[types.String], named))
+
+		v := FindViolation(named, cfg, nil)
+		if v != nil {
+			t.Errorf("expected nil for recursive map type, got %+v", v)
+		}
+	})
+
+	t.Run("recursive chan type C = chan C", func(t *testing.T) {
+		t.Parallel()
+		cfg := DefaultConfig()
+		cfg.ChanElem = true
+		pkg := types.NewPackage("example.com/foo", "foo")
+		tn := types.NewTypeName(0, pkg, "C", nil)
+		named := types.NewNamed(tn, nil, nil)
+		named.SetUnderlying(types.NewChan(types.SendRecv, named))
+
+		v := FindViolation(named, cfg, nil)
+		if v != nil {
+			t.Errorf("expected nil for recursive chan type, got %+v", v)
+		}
+	})
+}
