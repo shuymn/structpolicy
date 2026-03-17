@@ -1,4 +1,4 @@
-module github.com/shuymn/ptrstruct
+module github.com/shuymn/structpolicy
 
 go 1.25.0
 

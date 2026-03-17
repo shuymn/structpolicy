@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/shuymn/structpolicy/internal/cmd"
-	"github.com/shuymn/structpolicy/pkg/ptrstruct"
+	"github.com/shuymn/structpolicy/pkg/valuestruct"
 )
 
 func main() {
-	cmd.Run(ptrstruct.NewAnalyzer())
+	cmd.Run(valuestruct.NewAnalyzer())
 }
