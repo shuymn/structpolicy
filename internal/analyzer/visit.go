@@ -7,11 +7,11 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-type funcDeclChecker func(*analysis.Pass, *ast.FuncDecl, *Config, *Classifier) *analysis.Diagnostic
+type funcDeclChecker func(*analysis.Pass, *ast.FuncDecl, *Config, *Classifier) (analysis.Diagnostic, bool)
 
 var funcDeclChecks = [...]funcDeclChecker{checkReceiver, checkParams, checkResults}
 
-type typeSpecChecker func(*analysis.Pass, *ast.TypeSpec, *Config, *Classifier) *analysis.Diagnostic
+type typeSpecChecker func(*analysis.Pass, *ast.TypeSpec, *Config, *Classifier) (analysis.Diagnostic, bool)
 
 var typeSpecChecks = [...]typeSpecChecker{
 	checkStructFields,
@@ -29,12 +29,12 @@ func visitFuncDecl(
 	fileSupp *fileSuppression,
 ) {
 	for _, check := range funcDeclChecks {
-		diag := check(pass, decl, cfg, cls)
-		if diag == nil {
+		diag, ok := check(pass, decl, cfg, cls)
+		if !ok {
 			continue
 		}
 		if !isSuppressed(pass, diag.Pos, decl, file, cfg, fileSupp) {
-			pass.Report(*diag)
+			pass.Report(diag)
 		}
 		return // 1 violation per declaration
 	}
@@ -67,13 +67,13 @@ func visitTypeSpec(
 	fileSupp *fileSuppression,
 ) {
 	for _, check := range typeSpecChecks {
-		diag := check(pass, spec, cfg, cls)
-		if diag == nil {
+		diag, ok := check(pass, spec, cfg, cls)
+		if !ok {
 			continue
 		}
 		declNode := blockOrSpec(genDecl, spec)
 		if !isSuppressed(pass, diag.Pos, declNode, file, cfg, fileSupp) {
-			pass.Report(*diag)
+			pass.Report(diag)
 		}
 		return // 1 violation per declaration
 	}
@@ -84,42 +84,42 @@ func checkStructFields(
 	spec *ast.TypeSpec,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.Field {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	obj := pass.TypesInfo.Defs[spec.Name]
 	if obj == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	named, ok := obj.Type().(*types.Named)
 	if !ok {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	st, ok := named.Underlying().(*types.Struct)
 	if !ok {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	for i := range st.NumFields() {
 		field := st.Field(i)
-		v := FindViolation(field.Type(), cfg, cls)
-		if v == nil {
+		v, ok := FindViolation(field.Type(), cfg, cls)
+		if !ok {
 			continue
 		}
 
-		msg := FormatDiagnostic("field "+field.Name(), v, cfg.Mode)
+		msg := FormatDiagnostic("field "+field.Name(), &v, cfg.Mode)
 		pos := spec.Pos()
 		if astField := structField(spec, i); astField != nil {
 			pos = astField.Pos()
 		}
-		return &analysis.Diagnostic{Pos: pos, Message: msg}
+		return analysis.Diagnostic{Pos: pos, Message: msg}, true
 	}
 
-	return nil
+	return analysis.Diagnostic{}, false
 }
 
 func checkInterfaceMethods(
@@ -127,14 +127,14 @@ func checkInterfaceMethods(
 	spec *ast.TypeSpec,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.InterfaceMethod {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	iface, ok := spec.Type.(*ast.InterfaceType)
 	if !ok || iface.Methods == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	for _, field := range iface.Methods.List {
@@ -147,28 +147,42 @@ func checkInterfaceMethods(
 			continue
 		}
 
-		methodName := field.Names[0].Name
-		if diag := checkFieldList(
+		if diag, ok := checkInterfaceMethod(pass, field.Names[0].Name, ft, cfg, cls); ok {
+			return diag, true
+		}
+	}
+
+	return analysis.Diagnostic{}, false
+}
+
+func checkInterfaceMethod(
+	pass *analysis.Pass,
+	methodName string,
+	ft *ast.FuncType,
+	cfg *Config,
+	cls *Classifier,
+) (analysis.Diagnostic, bool) {
+	if cfg.Param && ft.Params != nil {
+		if diag, ok := checkFieldList(
 			pass,
 			ft.Params,
 			cfg,
 			cls,
 			func(f *ast.Field) string { return "interface method " + methodName + " " + fieldLabeler(f) },
-		); diag != nil {
-			return diag
+		); ok {
+			return diag, true
 		}
-		if diag := checkFieldList(
+	}
+	if cfg.Result && ft.Results != nil {
+		return checkFieldList(
 			pass,
 			ft.Results,
 			cfg,
 			cls,
 			func(*ast.Field) string { return "interface method " + methodName + " result" },
-		); diag != nil {
-			return diag
-		}
+		)
 	}
-
-	return nil
+	return analysis.Diagnostic{}, false
 }
 
 func checkFuncType(
@@ -176,33 +190,38 @@ func checkFuncType(
 	spec *ast.TypeSpec,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.FuncType {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	ft, ok := spec.Type.(*ast.FuncType)
 	if !ok {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	typeName := spec.Name.Name
-	if diag := checkFieldList(
-		pass,
-		ft.Params,
-		cfg,
-		cls,
-		func(f *ast.Field) string { return "function type " + typeName + " " + fieldLabeler(f) },
-	); diag != nil {
-		return diag
+	if cfg.Param && ft.Params != nil {
+		if diag, ok := checkFieldList(
+			pass,
+			ft.Params,
+			cfg,
+			cls,
+			func(f *ast.Field) string { return "function type " + typeName + " " + fieldLabeler(f) },
+		); ok {
+			return diag, true
+		}
 	}
-	return checkFieldList(
-		pass,
-		ft.Results,
-		cfg,
-		cls,
-		func(*ast.Field) string { return "function type " + typeName + " result" },
-	)
+	if cfg.Result && ft.Results != nil {
+		return checkFieldList(
+			pass,
+			ft.Results,
+			cfg,
+			cls,
+			func(*ast.Field) string { return "function type " + typeName + " result" },
+		)
+	}
+	return analysis.Diagnostic{}, false
 }
 
 func checkNamedType(
@@ -210,28 +229,28 @@ func checkNamedType(
 	spec *ast.TypeSpec,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.NamedType {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	obj := pass.TypesInfo.Defs[spec.Name]
 	if obj == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	named, ok := obj.Type().(*types.Named)
 	if !ok || !isNamedContainerType(named.Underlying()) {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
-	v := FindViolation(named, cfg, cls)
-	if v == nil {
-		return nil
+	v, ok := FindViolation(named, cfg, cls)
+	if !ok {
+		return analysis.Diagnostic{}, false
 	}
 
-	msg := FormatDiagnostic("named type "+spec.Name.Name, v, cfg.Mode)
-	return &analysis.Diagnostic{Pos: spec.Pos(), Message: msg}
+	msg := FormatDiagnostic("named type "+spec.Name.Name, &v, cfg.Mode)
+	return analysis.Diagnostic{Pos: spec.Pos(), Message: msg}, true
 }
 
 func checkReceiver(
@@ -239,24 +258,24 @@ func checkReceiver(
 	decl *ast.FuncDecl,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.Receiver || decl.Recv == nil || len(decl.Recv.List) == 0 {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
 	field := decl.Recv.List[0]
 	t := pass.TypesInfo.TypeOf(field.Type)
 	if t == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 
-	v := FindViolation(t, cfg, cls)
-	if v == nil {
-		return nil
+	v, ok := FindViolation(t, cfg, cls)
+	if !ok {
+		return analysis.Diagnostic{}, false
 	}
 
-	msg := FormatDiagnostic("receiver", v, cfg.Mode)
-	return &analysis.Diagnostic{Pos: field.Pos(), Message: msg}
+	msg := FormatDiagnostic("receiver", &v, cfg.Mode)
+	return analysis.Diagnostic{Pos: field.Pos(), Message: msg}, true
 }
 
 func checkParams(
@@ -264,9 +283,9 @@ func checkParams(
 	decl *ast.FuncDecl,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.Param || decl.Type.Params == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 	return checkFieldList(pass, decl.Type.Params, cfg, cls, fieldLabeler)
 }
@@ -276,9 +295,9 @@ func checkResults(
 	decl *ast.FuncDecl,
 	cfg *Config,
 	cls *Classifier,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	if !cfg.Result || decl.Type.Results == nil {
-		return nil
+		return analysis.Diagnostic{}, false
 	}
 	return checkFieldList(pass, decl.Type.Results, cfg, cls, func(*ast.Field) string { return "result" })
 }
@@ -289,20 +308,20 @@ func checkFieldList(
 	cfg *Config,
 	cls *Classifier,
 	label func(*ast.Field) string,
-) *analysis.Diagnostic {
+) (analysis.Diagnostic, bool) {
 	for _, field := range fields.List {
 		t := pass.TypesInfo.TypeOf(field.Type)
 		if t == nil {
 			continue
 		}
-		v := FindViolation(t, cfg, cls)
-		if v == nil {
+		v, ok := FindViolation(t, cfg, cls)
+		if !ok {
 			continue
 		}
-		msg := FormatDiagnostic(label(field), v, cfg.Mode)
-		return &analysis.Diagnostic{Pos: field.Pos(), Message: msg}
+		msg := FormatDiagnostic(label(field), &v, cfg.Mode)
+		return analysis.Diagnostic{Pos: field.Pos(), Message: msg}, true
 	}
-	return nil
+	return analysis.Diagnostic{}, false
 }
 
 func fieldLabeler(field *ast.Field) string {

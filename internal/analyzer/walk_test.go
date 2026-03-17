@@ -71,12 +71,12 @@ func TestFindViolation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			v := FindViolation(tt.typ, cfg, nil)
-			if tt.wantNil && v != nil {
+			v, ok := FindViolation(tt.typ, cfg, nil)
+			if tt.wantNil && ok {
 				t.Errorf("expected no violation, got %+v", v)
 			}
-			if !tt.wantNil && v == nil {
-				t.Error("expected violation, got nil")
+			if !tt.wantNil && !ok {
+				t.Error("expected violation, got none")
 			}
 		})
 	}
@@ -158,12 +158,12 @@ func TestFindViolation_ModeValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			v := FindViolation(tt.typ, cfg, nil)
-			if tt.wantNil && v != nil {
+			v, ok := FindViolation(tt.typ, cfg, nil)
+			if tt.wantNil && ok {
 				t.Errorf("expected no violation, got %+v", v)
 			}
-			if !tt.wantNil && v == nil {
-				t.Error("expected violation, got nil")
+			if !tt.wantNil && !ok {
+				t.Error("expected violation, got none")
 			}
 		})
 	}
@@ -209,12 +209,12 @@ func TestFindViolation_ModeValue_ArrayAndChan(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			v := FindViolation(tt.typ, cfg, nil)
-			if tt.wantNil && v != nil {
+			v, ok := FindViolation(tt.typ, cfg, nil)
+			if tt.wantNil && ok {
 				t.Errorf("expected no violation, got %+v", v)
 			}
-			if !tt.wantNil && v == nil {
-				t.Error("expected violation, got nil")
+			if !tt.wantNil && !ok {
+				t.Error("expected violation, got none")
 			}
 		})
 	}
@@ -229,8 +229,8 @@ func TestFindViolation_MapKeyDefaultOff(t *testing.T) {
 	cfg := DefaultConfig(ModePointer)
 	// MapKey is false by default
 	m := types.NewMap(user, types.NewPointer(user))
-	v := FindViolation(m, cfg, nil)
-	if v != nil {
+	v, ok := FindViolation(m, cfg, nil)
+	if ok {
 		t.Errorf("map key check should be off by default, got %+v", v)
 	}
 }
@@ -244,8 +244,8 @@ func TestFindViolation_MapKeyEnabled(t *testing.T) {
 	cfg := DefaultConfig(ModePointer)
 	cfg.MapKey = true
 	m := types.NewMap(user, types.NewPointer(user))
-	v := FindViolation(m, cfg, nil)
-	if v == nil {
+	_, ok := FindViolation(m, cfg, nil)
+	if !ok {
 		t.Error("expected violation for map key with MapKey enabled")
 	}
 }
@@ -261,9 +261,9 @@ func TestFindViolation_RecursiveTypes(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewSlice(named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive slice type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive slice type, got %+v", v)
 		}
 	})
 
@@ -275,9 +275,9 @@ func TestFindViolation_RecursiveTypes(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewMap(types.Typ[types.String], named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive map type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive map type, got %+v", v)
 		}
 	})
 
@@ -290,9 +290,9 @@ func TestFindViolation_RecursiveTypes(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewChan(types.SendRecv, named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive chan type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive chan type, got %+v", v)
 		}
 	})
 }
@@ -309,9 +309,9 @@ func TestFindViolation_RecursiveTypes_ModeValue(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewSlice(named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive slice type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive slice type, got %+v", v)
 		}
 	})
 
@@ -324,9 +324,9 @@ func TestFindViolation_RecursiveTypes_ModeValue(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewMap(types.Typ[types.String], named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive map type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive map type, got %+v", v)
 		}
 	})
 
@@ -339,9 +339,9 @@ func TestFindViolation_RecursiveTypes_ModeValue(t *testing.T) {
 		named := types.NewNamed(tn, nil, nil)
 		named.SetUnderlying(types.NewChan(types.SendRecv, named))
 
-		v := FindViolation(named, cfg, nil)
-		if v != nil {
-			t.Errorf("expected nil for recursive chan type, got %+v", v)
+		v, ok := FindViolation(named, cfg, nil)
+		if ok {
+			t.Errorf("expected no violation for recursive chan type, got %+v", v)
 		}
 	})
 }

@@ -18,15 +18,15 @@ type walker struct {
 	seen map[*types.Named]bool
 }
 
-// FindViolation walks t recursively and returns the first violation,
-// or nil if the type is clean.
+// FindViolation walks t recursively and returns the first violation.
+// ok is false if the type is clean.
 // cls may be nil if no allowlist is configured.
-func FindViolation(t types.Type, cfg *Config, cls *Classifier) *Violation {
+func FindViolation(t types.Type, cfg *Config, cls *Classifier) (Violation, bool) {
 	w := &walker{cfg: cfg, cls: cls, seen: make(map[*types.Named]bool)}
 	return w.walk(t, "")
 }
 
-func (w *walker) walk(t types.Type, path string) *Violation {
+func (w *walker) walk(t types.Type, path string) (Violation, bool) {
 	t = types.Unalias(t)
 
 	switch tt := t.(type) {
@@ -45,36 +45,36 @@ func (w *walker) walk(t types.Type, path string) *Violation {
 	case *types.Chan:
 		return w.walkChan(tt, path)
 	default:
-		return nil
+		return Violation{}, false
 	}
 }
 
-func (w *walker) walkPointer(tt *types.Pointer, path string) *Violation {
+func (w *walker) walkPointer(tt *types.Pointer, path string) (Violation, bool) {
 	elem := types.Unalias(tt.Elem())
 
 	if w.cfg.Mode == ModePointer {
 		// ptrstruct: pointer to struct is OK, stop walking.
 		if isStructType(elem) {
-			return nil
+			return Violation{}, false
 		}
 	} else {
 		// valuestruct: pointer to struct is a violation.
-		if v := w.checkStructViolation(elem, path); v != nil {
-			return v
+		if v, ok := w.checkStructViolation(elem, path); ok {
+			return v, true
 		}
 	}
 
 	return w.walk(elem, appendPath(path, pathPointer))
 }
 
-func (w *walker) walkNamed(tt *types.Named, path string) *Violation {
+func (w *walker) walkNamed(tt *types.Named, path string) (Violation, bool) {
 	if w.seen[tt] {
-		return nil
+		return Violation{}, false
 	}
 	w.seen[tt] = true
 
 	if w.cls != nil && w.cls.IsAllowed(tt) {
-		return nil
+		return Violation{}, false
 	}
 
 	under := tt.Underlying()
@@ -82,35 +82,35 @@ func (w *walker) walkNamed(tt *types.Named, path string) *Violation {
 		if w.cfg.Mode == ModePointer {
 			// ptrstruct: bare named struct is a violation.
 			if st.NumFields() == 0 {
-				return nil
+				return Violation{}, false
 			}
-			return &Violation{
+			return Violation{
 				Path:     path,
 				TypeName: tt.Obj().Name(),
 				Named:    tt,
-			}
+			}, true
 		}
 		// valuestruct: bare named struct is OK.
-		return nil
+		return Violation{}, false
 	}
 
 	return w.walk(under, path)
 }
 
-func (w *walker) walkStruct(tt *types.Struct, path string) *Violation {
+func (w *walker) walkStruct(tt *types.Struct, path string) (Violation, bool) {
 	if w.cfg.Mode == ModeValue {
 		// valuestruct: bare anonymous struct is OK.
-		return nil
+		return Violation{}, false
 	}
 	// ptrstruct: anonymous struct with fields is a violation.
 	if tt.NumFields() == 0 {
-		return nil
+		return Violation{}, false
 	}
-	return &Violation{
+	return Violation{
 		Path:     path,
 		TypeName: "struct{...}",
 		Named:    nil,
-	}
+	}, true
 }
 
 // checkStructViolation checks whether elem is a struct type and returns a
@@ -119,71 +119,71 @@ func (w *walker) walkStruct(tt *types.Struct, path string) *Violation {
 // For *types.Named, it marks seen to avoid redundant work when walkPointer
 // falls through to walk → walkNamed. The exception is non-struct underlying
 // types, which must NOT be marked so walkNamed can recurse into them.
-func (w *walker) checkStructViolation(elem types.Type, path string) *Violation {
+func (w *walker) checkStructViolation(elem types.Type, path string) (Violation, bool) {
 	switch et := elem.(type) {
 	case *types.Named:
 		if w.seen[et] {
-			return nil
+			return Violation{}, false
 		}
 		if w.cls != nil && w.cls.IsAllowed(et) {
 			w.seen[et] = true // walkNamed would also return nil
-			return nil
+			return Violation{}, false
 		}
 		st, ok := et.Underlying().(*types.Struct)
 		if !ok {
-			return nil // don't mark seen — walkNamed must recurse
+			return Violation{}, false // don't mark seen — walkNamed must recurse
 		}
 		w.seen[et] = true
 		if st.NumFields() == 0 {
-			return nil
+			return Violation{}, false
 		}
-		return &Violation{
+		return Violation{
 			Path:     path,
 			TypeName: et.Obj().Name(),
 			Named:    et,
-		}
+		}, true
 	case *types.Struct:
 		if et.NumFields() == 0 {
-			return nil
+			return Violation{}, false
 		}
-		return &Violation{
+		return Violation{
 			Path:     path,
 			TypeName: "struct{...}",
 			Named:    nil,
-		}
+		}, true
 	}
-	return nil
+	return Violation{}, false
 }
 
-func (w *walker) walkSlice(tt *types.Slice, path string) *Violation {
+func (w *walker) walkSlice(tt *types.Slice, path string) (Violation, bool) {
 	if !w.cfg.SliceElem {
-		return nil
+		return Violation{}, false
 	}
 	return w.walk(tt.Elem(), appendPath(path, pathSliceElement))
 }
 
-func (w *walker) walkMap(tt *types.Map, path string) *Violation {
+func (w *walker) walkMap(tt *types.Map, path string) (Violation, bool) {
 	if w.cfg.MapKey {
-		if v := w.walk(tt.Key(), appendPath(path, pathMapKey)); v != nil {
-			return v
+		if v, ok := w.walk(tt.Key(), appendPath(path, pathMapKey)); ok {
+			return v, true
 		}
 	}
 	if !w.cfg.MapValue {
-		return nil
+		return Violation{}, false
 	}
 	return w.walk(tt.Elem(), appendPath(path, pathMapValue))
 }
 
-func (w *walker) walkArray(tt *types.Array, path string) *Violation {
+func (w *walker) walkArray(tt *types.Array, path string) (Violation, bool) {
 	if !w.cfg.ArrayElem {
-		return nil
+		return Violation{}, false
 	}
 	return w.walk(tt.Elem(), appendPath(path, pathArrayElement))
 }
 
-func (w *walker) walkChan(tt *types.Chan, path string) *Violation {
+func (w *walker) walkChan(tt *types.Chan, path string) (Violation, bool) {
 	if !w.cfg.ChanElem {
-		return nil
+		return Violation{}, false
 	}
 	return w.walk(tt.Elem(), appendPath(path, pathChanElement))
 }
