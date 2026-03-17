@@ -11,6 +11,14 @@ Go static analyzers for enforcing struct usage policy in Go APIs. Built on [`gol
 
 The analyzers ship with opposite performance-tuning defaults so you can push a codebase toward one side first and adjust from there. `ptrstruct` defaults focus on `copy hotspot` candidates around call boundaries and declarations. `valuestruct` defaults focus on `allocation / indirection hotspot` candidates in returns and container-heavy shapes. See each analyzer's README for the exact default profile and full flag reference.
 
+## Agent Skills
+
+Agent Skills for struct usage tuning are available in the [`skills/`](skills/) directory.
+
+```bash
+npx skills add shuymn/structpolicy
+```
+
 ## Local Development
 
 Requires [Task](https://taskfile.dev/) as the build interface.
