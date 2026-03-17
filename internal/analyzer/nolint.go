@@ -29,7 +29,7 @@ func newNolintMatcher(cfg *Config) nolintMatcher {
 
 // match reports whether a comment text matches //nolint:<linterName> or
 // //nolint:all (when honorAll is true).
-func (m nolintMatcher) match(text string) bool {
+func (m *nolintMatcher) match(text string) bool {
 	// Strip leading "//" and whitespace.
 	s := strings.TrimPrefix(text, "//")
 	s = strings.TrimSpace(s)
@@ -74,18 +74,18 @@ func isSuppressed(
 
 	m := newNolintMatcher(cfg)
 
-	if fileSuppressed(file, pass.Fset, m, fileSupp) {
+	if fileSuppressed(file, pass.Fset, &m, fileSupp) {
 		return true
 	}
 
 	line := pass.Fset.Position(pos).Line
 
-	return isSuppressedInline(file, pass.Fset, line, m) ||
-		isSuppressedBlock(decl, m)
+	return isSuppressedInline(file, pass.Fset, line, &m) ||
+		isSuppressedBlock(decl, &m)
 }
 
 // fileSuppressed checks the cached file-level suppression, computing it once.
-func fileSuppressed(file *ast.File, fset *token.FileSet, m nolintMatcher, fs *fileSuppression) bool {
+func fileSuppressed(file *ast.File, fset *token.FileSet, m *nolintMatcher, fs *fileSuppression) bool {
 	if !fs.checked {
 		fs.checked = true
 		fs.suppressed = checkFileSuppression(file, fset, m)
@@ -96,7 +96,7 @@ func fileSuppressed(file *ast.File, fset *token.FileSet, m nolintMatcher, fs *fi
 // isSuppressedInline checks whether any comment on the same line contains a
 // matching nolint directive. Comments are position-sorted, so we break early
 // once past the target line.
-func isSuppressedInline(file *ast.File, fset *token.FileSet, line int, m nolintMatcher) bool {
+func isSuppressedInline(file *ast.File, fset *token.FileSet, line int, m *nolintMatcher) bool {
 	for _, cg := range file.Comments {
 		cgLine := fset.Position(cg.Pos()).Line
 		if cgLine > line {
@@ -113,7 +113,7 @@ func isSuppressedInline(file *ast.File, fset *token.FileSet, line int, m nolintM
 
 // isSuppressedBlock checks whether the doc comment group attached to decl
 // contains a nolint directive.
-func isSuppressedBlock(decl ast.Node, m nolintMatcher) bool {
+func isSuppressedBlock(decl ast.Node, m *nolintMatcher) bool {
 	var doc *ast.CommentGroup
 	switch d := decl.(type) {
 	case *ast.FuncDecl:
@@ -136,7 +136,7 @@ func isSuppressedBlock(decl ast.Node, m nolintMatcher) bool {
 
 // checkFileSuppression checks whether a comment before the package clause
 // contains a nolint directive.
-func checkFileSuppression(file *ast.File, fset *token.FileSet, m nolintMatcher) bool {
+func checkFileSuppression(file *ast.File, fset *token.FileSet, m *nolintMatcher) bool {
 	pkgLine := fset.Position(file.Package).Line
 	for _, cg := range file.Comments {
 		if fset.Position(cg.End()).Line >= pkgLine {
