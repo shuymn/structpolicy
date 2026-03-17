@@ -83,18 +83,15 @@ func visitTypeSpec(
 		}
 
 		msg := FormatDiagnostic("field "+field.Name(), v)
-		astField := structField(spec, i)
 		pos := spec.Pos()
-		var target ast.Expr
-		if astField != nil {
+		if astField := structField(spec, i); astField != nil {
 			pos = astField.Pos()
-			target = astField.Type
 		}
-		diag := diagnosticWithFix(pass, pos, target, msg, v)
+		diag := analysis.Diagnostic{Pos: pos, Message: msg}
 
 		declNode := blockOrSpec(genDecl, spec)
 		if !isSuppressed(pass, diag.Pos, declNode, file, cfg, fileSupp) {
-			pass.Report(*diag)
+			pass.Report(diag)
 		}
 		return // 1 violation per declaration
 	}
@@ -122,7 +119,7 @@ func checkReceiver(
 	}
 
 	msg := FormatDiagnostic("receiver", v)
-	return diagnosticWithFix(pass, field.Pos(), field.Type, msg, v)
+	return &analysis.Diagnostic{Pos: field.Pos(), Message: msg}
 }
 
 func checkParams(
@@ -166,7 +163,7 @@ func checkFieldList(
 			continue
 		}
 		msg := FormatDiagnostic(label(field), v)
-		return diagnosticWithFix(pass, field.Pos(), field.Type, msg, v)
+		return &analysis.Diagnostic{Pos: field.Pos(), Message: msg}
 	}
 	return nil
 }
