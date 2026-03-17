@@ -9,6 +9,6 @@ func DeepNest(data []map[string]User) {} // want `parameter data uses slice elem
 
 // Pointer wrapping a nested container
 func PtrDeepNest(
-	data *[]map[string]User,
+	data *[]map[string]User, // want `parameter data uses pointer -> slice element -> map value User by value`
 ) {
-} // want `parameter data uses pointer -> slice element -> map value User by value`
+}
