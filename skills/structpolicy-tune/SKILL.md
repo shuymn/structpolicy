@@ -78,7 +78,7 @@ These are the wins. Typical patterns:
 | ptrstruct    | receiver uses value struct `T`         | Change receiver to `*T`                                  |
 | ptrstruct    | parameter uses value struct `T`        | Change parameter to `*T`                                 |
 | valuestruct  | result uses pointer to struct `T`      | See "Choosing a return style" below                      |
-| ptrstruct    | field uses value struct `T`            | Change field to `*T`                                     |
+| ptrstruct    | field uses value struct `T`            | See "Field value → pointer considerations" below         |
 
 **Choosing a return style for valuestruct findings**
 
@@ -88,8 +88,8 @@ Pick the one that fits the context:
 | Option | When to use |
 |--------|-------------|
 | Return `T` directly | The function always succeeds (no "not found" case) |
-| Return `(T, bool)` | Small, immutable struct with a clear found/not-found semantic — similar to map lookup or type assertion |
-| Keep `*T` | Large struct (> ~128 bytes), mutable struct, or when `*T` is the dominant convention in the surrounding code |
+| Return `(T, bool)` | Small, immutable struct with a clear found/not-found semantic — similar to map lookup or type assertion. **Only when the function does not also return `error`.** |
+| Keep `*T` | Large struct (> ~128 bytes), mutable struct, when `*T` is the dominant convention in the surrounding code, or **when the function already returns `error`** |
 
 `(T, bool)` eliminates a heap allocation and makes the "absent" case explicit,
 but it is less common than `*T` + nil in user-defined Go functions. The Go
@@ -98,10 +98,14 @@ lookup, type assertion, channel receive) and `sql.Null*` types adopt the same
 idea as a struct field. For user-defined code, `*T` with nil is the more
 familiar pattern for most Go developers.
 
-Use benchmarks (step 1) to decide: if the function is on a hot path and
-`-benchmem` shows significant allocs/op, `(T, bool)` is worth the style
-departure. If the function is called rarely, prefer whichever style is
-consistent with the rest of the codebase.
+**`(T, bool, error)` is not idiomatic Go.** When a function already returns
+`error`, the `*T` + nil pattern is the standard way to express "not found" or
+"absent". Do not introduce a `bool` alongside `error` — keep `*T` in this
+case.
+
+Default to **keeping `*T`** unless the function is on a proven hot path and
+`-benchmem` shows significant allocs/op. The style departure of `(T, bool)` is
+only worth it with benchmark evidence.
 
 When converting `*T` returns to `(T, bool)`:
 - Update **every** caller, including test files
@@ -112,6 +116,21 @@ When a function takes a struct parameter that callers always create locally
 (stack-allocated from a value return), prefer `*T` for the parameter — the
 caller passes `&v` and the pointer stays on the stack because the function only
 reads it. This avoids copying while keeping the value off the heap.
+
+**Field value → pointer considerations**
+
+When ptrstruct flags a struct field as value where pointer is expected, evaluate
+the nil-safety cost before changing:
+
+| Situation | Action |
+|-----------|--------|
+| Field is always set at construction time and never observed as zero-value | Fix — change to `*T` |
+| Field requires lazy initialization or nil checks to avoid panic (e.g., `if f.x == nil { f.x = &X{} }`) | **Skip** — the nil-safety burden outweighs the allocation benefit |
+| Field is in a mutable struct where nil/non-nil carries semantic meaning | Investigate — weigh the API clarity vs. allocation trade-off |
+
+The general principle: if changing a field to pointer forces defensive nil
+checks at usage sites, the safety cost is too high unless benchmarks show a
+clear hot-path benefit.
 
 #### Skip — external / framework-constrained types
 
@@ -130,6 +149,13 @@ Do not change types when:
   ...)` or `a.Flags.BoolVar(&cfg.Receiver, ...)` stores a pointer to a field,
   the struct *must* have a stable address (heap-allocated, not copied). Returning
   by value would invalidate those pointers.
+
+- **Slice element types (`[]*T` → `[]T`)**: If valuestruct flags slice elements,
+  converting `[]*T` to `[]T` forces callers into index-based access patterns
+  (`&slice[i]`, `d := &decls[i]`) to obtain pointers for mutation or passing to
+  functions expecting `*T`. This is not idiomatic Go — the standard pattern is
+  `for _, v := range slice` with direct use. Skip unless benchmarks prove a
+  significant allocation win on a hot path.
 
 - **Interface satisfaction**: If a pointer receiver is needed to satisfy an
   interface and the struct is returned by value, callers would need `&v` just to
