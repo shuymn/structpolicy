@@ -5,8 +5,8 @@ go 1.25.0
 toolchain go1.27.0
 
 require (
-	golang.org/x/mod v0.34.0
-	golang.org/x/tools v0.43.0
+	golang.org/x/mod v0.38.0
+	golang.org/x/tools v0.47.0
 )
 
-require golang.org/x/sync v0.20.0 // indirect
+require golang.org/x/sync v0.21.0 // indirect
